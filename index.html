@@ -136,15 +136,21 @@
                 const value = e.target.value;
                 if (!value) { resetForm(); return; }
                 const match = matches.find(m => m.journee === parseInt(value));
-                setSelectedMatch(match); setSelectedDate(match ? match.date : '');
                 if (match) {
-                    setScoreRouges(match.scoreRouges !== null ? match.scoreRouges : '');
-                    setScoreBleus(match.scoreBleus !== null ? match.scoreBleus : '');
-                    setGoalsRouges(match.goalsRouges || []); setGoalsBleus(match.goalsBleus || []);
+                    setSelectedMatch(match);
+                    setSelectedDate(match.date || '');
+                    setScoreRouges(match.scoreRouges !== null ? String(match.scoreRouges) : '');
+                    setScoreBleus(match.scoreBleus !== null ? String(match.scoreBleus) : '');
+                    setGoalsRouges(match.goalsRouges || []);
+                    setGoalsBleus(match.goalsBleus || []);
                 }
             };
 
-            const handleDateChange = (e) => { const newDate = e.target.value; setSelectedDate(newDate); if (selectedMatch) setSelectedMatch({ ...selectedMatch, date: newDate }); };
+            const handleDateChange = (e) => {
+                const newDate = e.target.value;
+                setSelectedDate(newDate);
+                if (selectedMatch) setSelectedMatch({ ...selectedMatch, date: newDate });
+            };
 
             const handleResetData = async () => {
                 if (window.confirm('⚠️ Réinitialiser TOUT ?')) {
@@ -186,7 +192,20 @@
                             </select>
                             {selectedMatch && (
                                 <div className="space-y-2">
-                                    <input type="date" className="w-full p-2 border rounded text-sm" value={selectedDate} onChange={handleDateChange} />
+                                    <div>
+                                        <label className="block font-semibold text-xs mb-1 text-gray-700">📅 Date du match :</label>
+                                        <input
+                                            type="date"
+                                            className="w-full p-2 border-2 border-gray-300 rounded text-sm"
+                                            value={selectedDate}
+                                            onChange={handleDateChange}
+                                        />
+                                        {selectedDate && (
+                                            <p className="text-xs text-green-600 mt-1">
+                                                ✅ {new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </p>
+                                        )}
+                                    </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div><label className="block font-semibold text-xs mb-1 text-red-600">Score Rouges:</label><input type="number" min="0" className="w-full p-2 border rounded text-sm" value={scoreRouges} onChange={(e) => setScoreRouges(e.target.value)} /></div>
                                         <div><label className="block font-semibold text-xs mb-1 text-blue-600">Score Bleus:</label><input type="number" min="0" className="w-full p-2 border rounded text-sm" value={scoreBleus} onChange={(e) => setScoreBleus(e.target.value)} /></div>
