@@ -18,6 +18,7 @@
         .btn-blue { background: #2563eb; color: white; }
         .btn-red { background: #dc2626; color: white; }
         .btn-orange { background: #ea580c; color: white; }
+        .btn-yellow { background: #d97706; color: white; }
         .btn-small { width: auto; padding: 8px 14px; font-size: 13px; }
         .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
         .score-input { text-align: center; font-size: 22px; font-weight: bold; }
@@ -27,6 +28,7 @@
         .box-red { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 10px; }
         .box-blue { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 10px; }
         .box-green { background: #f0fdf4; border: 2px solid #86efac; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .box-orange { background: #fff7ed; border: 2px solid #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
         .header { display: flex; align-items: center; gap: 8px; }
         .dot-red { width: 26px; height: 26px; background: #dc2626; border-radius: 50%; flex-shrink: 0; }
         .dot-blue { width: 26px; height: 26px; background: #2563eb; border-radius: 50%; flex-shrink: 0; }
@@ -40,6 +42,7 @@
         .err { color: #dc2626; }
         .wait { color: #d97706; }
         .separator { border: none; border-top: 2px solid #e5e7eb; margin: 10px 0; }
+        .delete-btn { background: #fee2e2; border: none; color: #dc2626; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -56,6 +59,7 @@
         </div>
     </div>
 
+    <!-- JOUEURS -->
     <div class="card">
         <h2>👥 Joueurs</h2>
         <div style="display:flex; gap:8px;">
@@ -68,6 +72,7 @@
         </div>
     </div>
 
+    <!-- AJOUTER UNE JOURNÉE -->
     <div class="card">
         <h2>➕ Ajouter une journée</h2>
         <div class="box-green">
@@ -75,12 +80,26 @@
             <input type="date" id="newMatchDate" style="margin-bottom:8px;">
             <button class="btn btn-orange" onclick="addNewMatch()" style="margin:0;">➕ Créer cette journée</button>
         </div>
+
         <h3>📋 Journées créées (<span id="matchCount">0</span>)</h3>
         <div class="match-list" id="matchList">
             <p style="color:#9ca3af;font-size:12px;text-align:center;padding:10px;">Chargement...</p>
         </div>
     </div>
 
+    <!-- SUPPRIMER UNE JOURNÉE -->
+    <div class="card">
+        <h2>🗑️ Supprimer une journée</h2>
+        <div class="box-orange">
+            <label>Sélectionner la journée à supprimer :</label>
+            <select id="deleteMatchSelect">
+                <option value="">-- Choisir une journée --</option>
+            </select>
+            <button class="btn btn-red" onclick="deleteMatch()" style="margin:0;">🗑️ Supprimer cette journée</button>
+        </div>
+    </div>
+
+    <!-- SAISIR UN RÉSULTAT -->
     <div class="card">
         <h2>⚽ Saisir un résultat</h2>
         <label>Sélectionner une journée :</label>
@@ -127,6 +146,7 @@
         </div>
     </div>
 
+    <!-- ZONE DANGER -->
     <div class="card">
         <h3 style="color:#dc2626;margin-bottom:8px;">⚠️ Zone Danger</h3>
         <button class="btn btn-red btn-small" onclick="resetAll()">🗑️ Réinitialiser toutes les données</button>
@@ -180,6 +200,7 @@
         renderPlayers();
         renderMatchList();
         buildMatchSelect();
+        buildDeleteSelect();
         buildPlayerSelects();
     }
 
@@ -223,6 +244,20 @@
         if (cur) sel.value = cur;
     }
 
+    function buildDeleteSelect() {
+        const sel = document.getElementById('deleteMatchSelect');
+        sel.innerHTML = '<option value="">-- Choisir une journée --</option>';
+        data.matches.forEach(m => {
+            const d = new Date(m.date + 'T12:00:00');
+            const ds = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            const st = m.scoreRouges !== null ? ` ✅ (${m.scoreRouges}-${m.scoreBleus})` : ' ⏳ À jouer';
+            const opt = document.createElement('option');
+            opt.value = m.journee;
+            opt.textContent = `J${m.journee} • ${ds}${st}`;
+            sel.appendChild(opt);
+        });
+    }
+
     function buildPlayerSelects() {
         const opts = data.players.map(p => `<option value="${p}">${p}</option>`).join('');
         document.getElementById('goalScorer').innerHTML = '<option value="">-- Buteur --</option>' + opts;
@@ -235,18 +270,80 @@
         if (data.players.includes(name)) { alert('Joueur déjà existant !'); return; }
         data.players = [...data.players, name].sort();
         const ok = await saveData();
-        if (ok) { renderPlayers(); buildPlayerSelects(); document.getElementById('newPlayer').value = ''; alert('✅ ' + name + ' ajouté !'); }
+        if (ok) {
+            renderPlayers();
+            buildPlayerSelects();
+            document.getElementById('newPlayer').value = '';
+            alert('✅ ' + name + ' ajouté !');
+        }
     }
 
     async function addNewMatch() {
         const date = document.getElementById('newMatchDate').value;
         if (!date) { alert('Choisissez une date'); return; }
         if (data.matches.find(m => m.date === date)) { alert('Cette date existe déjà !'); return; }
-        data.matches.push({ journee: data.matches.length + 1, date, scoreRouges: null, scoreBleus: null, goalsRouges: [], goalsBleus: [] });
+        data.matches.push({
+            journee: data.matches.length + 1,
+            date,
+            scoreRouges: null,
+            scoreBleus: null,
+            goalsRouges: [],
+            goalsBleus: []
+        });
         data.matches.sort((a, b) => a.date.localeCompare(b.date));
         data.matches.forEach((m, i) => m.journee = i + 1);
         const ok = await saveData();
-        if (ok) { renderMatchList(); buildMatchSelect(); document.getElementById('newMatchDate').value = ''; alert('✅ Journée créée !'); }
+        if (ok) {
+            renderMatchList();
+            buildMatchSelect();
+            buildDeleteSelect();
+            document.getElementById('newMatchDate').value = '';
+            alert('✅ Journée créée !');
+        }
+    }
+
+    async function deleteMatch() {
+        const val = document.getElementById('deleteMatchSelect').value;
+        if (!val) { alert('Sélectionnez une journée à supprimer'); return; }
+
+        const match = data.matches.find(m => m.journee === parseInt(val));
+        if (!match) return;
+
+        const d = new Date(match.date + 'T12:00:00');
+        const ds = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        if (!confirm(`⚠️ Supprimer J${match.journee} (${ds}) ?\n\nCette action est irréversible !`)) return;
+
+        // Si le match avait des buts, on recalcule les stats
+        if (match.scoreRouges !== null) {
+            // Soustraire les buts du classement des buteurs et passeurs
+            [...(match.goalsRouges || []), ...(match.goalsBleus || [])].forEach(g => {
+                if (data.scorers[g.scorer]) {
+                    data.scorers[g.scorer]--;
+                    if (data.scorers[g.scorer] <= 0) delete data.scorers[g.scorer];
+                }
+                if (g.assist !== 'Aucune' && data.assists[g.assist]) {
+                    data.assists[g.assist]--;
+                    if (data.assists[g.assist] <= 0) delete data.assists[g.assist];
+                }
+            });
+        }
+
+        // Supprimer le match
+        data.matches = data.matches.filter(m => m.journee !== parseInt(val));
+
+        // Renuméroter
+        data.matches.sort((a, b) => a.date.localeCompare(b.date));
+        data.matches.forEach((m, i) => m.journee = i + 1);
+
+        const ok = await saveData();
+        if (ok) {
+            document.getElementById('deleteMatchSelect').value = '';
+            document.getElementById('matchForm').style.display = 'none';
+            selectedJournee = null;
+            renderAll();
+            alert('✅ Journée supprimée et statistiques mises à jour !');
+        }
     }
 
     function selectMatch() {
@@ -301,26 +398,16 @@
             return;
         }
         const idx = data.matches.findIndex(m => m.journee === selectedJournee);
-        data.matches[idx] = { ...data.matches[idx], scoreRouges: parseInt(sR), scoreBleus: parseInt(sB), goalsRouges: [...goalsR], goalsBleus: [...goalsB] };
+        data.matches[idx] = {
+            ...data.matches[idx],
+            scoreRouges: parseInt(sR),
+            scoreBleus: parseInt(sB),
+            goalsRouges: [...goalsR],
+            goalsBleus: [...goalsB]
+        };
         [...goalsR, ...goalsB].forEach(g => {
             data.scorers[g.scorer] = (data.scorers[g.scorer] || 0) + 1;
             if (g.assist !== 'Aucune') data.assists[g.assist] = (data.assists[g.assist] || 0) + 1;
         });
         const ok = await saveData();
-        if (ok) { renderMatchList(); buildMatchSelect(); alert('✅ Match J' + selectedJournee + ' enregistré !'); }
-    }
-
-    async function resetAll() {
-        if (!confirm('⚠️ Réinitialiser TOUT ? Irréversible !')) return;
-        data = { matches: [], players: [], scorers: {}, assists: {} };
-        goalsR = []; goalsB = []; selectedJournee = null;
-        document.getElementById('matchForm').style.display = 'none';
-        document.getElementById('matchSelect').value = '';
-        const ok = await saveData();
-        if (ok) { renderAll(); alert('✅ Réinitialisé !'); }
-    }
-
-    loadData();
-</script>
-</body>
-</html>
+  
