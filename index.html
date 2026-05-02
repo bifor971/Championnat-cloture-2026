@@ -154,7 +154,7 @@
 
 </div>
 <script>
-    const API = 'https://script.google.com/macros/s/AKfycbxhd7hyR6TWSC6xgdod-dfxOpd0jX43vSdGSCx10lMGKZBT-ASQTqpJ-m90o33jCa13KQ/exec';
+    const API = 'https://script.google.com/macros/s/AKfycbx-AZnqQ2yAS-B-G9RhACdY_puLzMaWJrwE6VUhXeCy2NISuT8i3kQLyMgdwity7gRkdQ/exec';
 
     let data = { matches: [], players: [], scorers: {}, assists: {} };
     let goalsR = [], goalsB = [];
@@ -410,4 +410,26 @@
             if (g.assist !== 'Aucune') data.assists[g.assist] = (data.assists[g.assist] || 0) + 1;
         });
         const ok = await saveData();
-  
+        if (ok) {
+            renderMatchList();
+            buildMatchSelect();
+            buildDeleteSelect();
+            alert('✅ Match J' + selectedJournee + ' enregistré !');
+        }
+    }
+
+    async function resetAll() {
+        if (!confirm('⚠️ Réinitialiser TOUT ? Irréversible !')) return;
+        data = { matches: [], players: [], scorers: {}, assists: {} };
+        goalsR = []; goalsB = []; selectedJournee = null;
+        document.getElementById('matchForm').style.display = 'none';
+        document.getElementById('matchSelect').value = '';
+        document.getElementById('deleteMatchSelect').value = '';
+        const ok = await saveData();
+        if (ok) { renderAll(); alert('✅ Réinitialisé !'); }
+    }
+
+    loadData();
+</script>
+</body>
+</html>
